@@ -1,0 +1,3 @@
+rootProject.name='MultiToggleButtonSupport'
+include ':app'
+include ':multitogglebutton'

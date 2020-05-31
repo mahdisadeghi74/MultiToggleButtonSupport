@@ -1,9 +1,13 @@
 package com.dependencies.buria.android.support.multitogglebutton;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +16,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+
+import static android.content.ContentValues.TAG;
 
 public class MultiToggleButton extends LinearLayout {
     // typeface value
@@ -22,22 +30,27 @@ public class MultiToggleButton extends LinearLayout {
 
     //attrs put user
     private ArrayList<Integer> toggleDrawables = null;
-    String text = "";
+    private ArrayList<String> toggleStrings = null;
+    private String text = "";
+
     Float buttonPadding = 0f;
     int toggleButtonTint = 0;
     Float textSize = 12f;
-    int textColor =  0;
+    ColorStateList textColor = null;
     private int textStyle = TEXT_STYLE_NORMAL;
     float toggleButtonSize = 24f;
 
     // variables counter
     private int currentItem = 0;
     private int itemCount = 0;
+    private boolean isText = false;
 
     // views
     private ImageButton tgb;
+    private TextView tvTgb;
     // listener
-    private OnChangeListener onItemChangeListener = null;
+    private OnDrawableChangeListener onItemChangeListener = null;
+    private OnTextChangeListener onTextChangeListener = null;
 
     private Context context;
 
@@ -61,7 +74,7 @@ public class MultiToggleButton extends LinearLayout {
         init(context, attrs, defStyleAttr);
     }
 
-    private void init(final Context context, AttributeSet attrs, int defStyleAttr){
+    private void init(final Context context, AttributeSet attrs, int defStyleAttr) {
         textSize = toDP(context, 12f);
         this.context = context;
 
@@ -70,26 +83,26 @@ public class MultiToggleButton extends LinearLayout {
         if (inflater != null)
             inflater.inflate(R.layout.layout_multi_toggle_button, this);
 
-        TextView tvTgb = findViewById(R.id.tvTgb);
+        tvTgb = findViewById(R.id.tvTgb);
         tgb = findViewById(R.id.tgb);
         TypedArray typeArray = context.obtainStyledAttributes(attrs, R.styleable.MultiToggleButton);
 
 
         try {
             text = typeArray.getString(R.styleable.MultiToggleButton_text);
-            buttonPadding = typeArray.getDimension(R.styleable.MultiToggleButton_buttonPadding, toDP(context,8f));
+            buttonPadding = typeArray.getDimension(R.styleable.MultiToggleButton_buttonPadding, toDP(context, 8f));
             toggleButtonTint =
                     typeArray.getResourceId(R.styleable.MultiToggleButton_toggleButtonTint, 0);
-            textSize = typeArray.getDimension(R.styleable.MultiToggleButton_textSize, toDP(context,14f));
-            textColor = typeArray.getResourceId(R.styleable.MultiToggleButton_textColor, 0);
+            textSize = typeArray.getDimension(R.styleable.MultiToggleButton_textSize, toDP(context, 14f));
+            textColor = typeArray.getColorStateList(R.styleable.MultiToggleButton_textColor);
             textStyle = typeArray.getInt(R.styleable.MultiToggleButton_textStyle, TEXT_STYLE_NORMAL);
-            toggleButtonSize = typeArray.getDimensionPixelSize(R.styleable.MultiToggleButton_toggleButtonSize,  Math.round(toDP(context,24f)));
+            toggleButtonSize = typeArray.getDimensionPixelSize(R.styleable.MultiToggleButton_toggleButtonSize, Math.round(toDP(context, 24f)));
 
             if (tvTgb != null) {
                 tvTgb.setText(text);
                 tvTgb.setPadding(buttonPadding.intValue(), 0, 0, 0);
-                if (textColor != 0)
-                    tvTgb.setTextColor(context.getResources().getColor(textColor));
+                if (textColor != null)
+                    tvTgb.setTextColor(textColor);
                 tvTgb.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
 
                 if (textStyle != 0) {
@@ -114,52 +127,116 @@ public class MultiToggleButton extends LinearLayout {
                 tgb.getLayoutParams().height = Math.round(toggleButtonSize);
                 tgb.getLayoutParams().width = Math.round(toggleButtonSize);
             }
-        }finally {
+        } finally {
             typeArray.recycle();
         }
 
-        if (tgb != null) {
-            tgb.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    setToggleImageResource();
-                    setCurrentImageResource(context);
+        Log.d(TAG, "init: isText: " + (isText ? "true" : "false"));
 
-                    if (onItemChangeListener != null) {
-                        onItemChangeListener.onItemChangeListener(getCurrentResource(),
-                                currentItem);
-                    }
+        tgb.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setToggleImageResource();
+                setCurrentImageResource(context);
+
+                if (onTextChangeListener != null) {
+                    onTextChangeListener.onItemChangeListener(getCurrentText(),
+                            currentItem);
                 }
-            });
-        }
+            }
+        });
+
+
+        tvTgb.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                tgb.callOnClick();
+            }
+        });
+
     }
 
-    public void addToggleDrawables(int... resources) {
-        toggleDrawables = new ArrayList<>();
+    public void addToggleItems(int... resources) {
+        isText = false;
+        if (toggleDrawables == null) {
+            toggleDrawables = new ArrayList<>();
+        }
+
         if (resources != null) {
             for (int r : resources) {
                 toggleDrawables.add(r);
             }
-            itemCount = resources.length;
+            itemCount = toggleDrawables.size();
             setCurrentImageResource(context);
         }
     }
 
-    public void addToggleDrawables(ArrayList<Integer> resources) {
-        toggleDrawables = new ArrayList<>();
+    public void addToggleItems(String... resources) {
+        isText = true;
+        toggleButtonSize = 0f;
+
+        if (toggleStrings == null) {
+            toggleStrings = new ArrayList<>();
+        }
+
         if (resources != null) {
-            toggleDrawables.addAll(resources);
-            itemCount = resources.size();
+            toggleStrings.addAll(Arrays.asList(resources));
+            itemCount = toggleStrings.size();
             setCurrentImageResource(context);
         }
     }
+
+    public void addToggleItems(ArrayList<?> resources) {
+        if (toggleDrawables == null) {
+            toggleDrawables = new ArrayList<>();
+        }
+        if (toggleStrings == null) {
+            toggleStrings = new ArrayList<>();
+        }
+        if (resources != null) {
+            if (resources.size() > 0) {
+                if (resources.get(0) instanceof Integer) {
+                    isText = false;
+                    toggleDrawables.addAll((Collection<? extends Integer>) resources);
+                    itemCount = toggleDrawables.size();
+                    setCurrentImageResource(context);
+                } else if (resources.get(0) instanceof String) {
+                    isText = true;
+                    toggleButtonSize = 0f;
+
+                    toggleStrings.addAll((Collection<? extends String>) resources);
+                    itemCount = toggleStrings.size();
+                    setCurrentImageResource(context);
+                }
+            }
+
+        }
+    }
+
 
     private void setCurrentImageResource(Context context) {
-        if (itemCount > 0){
-            if (toggleDrawables != null){
-                if (currentItem < itemCount) {
-                    if (toggleDrawables.get(currentItem) != null){
-                        tgb.setImageDrawable(context.getResources().getDrawable(toggleDrawables.get(currentItem)));
+        if (itemCount > 0) {
+            if (!isText) {
+                if (toggleDrawables != null) {
+                    if (currentItem < itemCount) {
+                        if (toggleDrawables.get(currentItem) != null) {
+                            try {
+                                String resource = context.getResources().getResourceName(toggleDrawables.get(currentItem));
+                                if (resource != null)
+                                    tgb.setImageDrawable(context.getResources().getDrawable(toggleDrawables.get(currentItem)));
+                            }catch (Resources.NotFoundException e){
+                                itemCount = 0;
+                                currentItem = 0;
+                            }
+                        }
+                    }
+                }
+            } else {
+                if (toggleStrings != null) {
+                    if (currentItem < itemCount) {
+                        if (toggleStrings.get(currentItem) != null) {
+                            tvTgb.setText(toggleStrings.get(currentItem));
+                        }
                     }
                 }
             }
@@ -170,21 +247,33 @@ public class MultiToggleButton extends LinearLayout {
         currentItem = (currentItem == itemCount - 1) ? 0 : currentItem + 1;
     }
 
-    private int getCurrentResource(){
-        if (toggleDrawables != null){
-            if (currentItem < itemCount){
+    private int getCurrentResource() {
+        if (toggleDrawables != null) {
+            if (currentItem < itemCount) {
                 return toggleDrawables.get(currentItem);
             }
         }
         return 0;
     }
 
-
-    public void setOnItemChangeListener(OnChangeListener onItemChangeListener) {
-        this.onItemChangeListener = onItemChangeListener;
+    private String getCurrentText() {
+        if (toggleStrings != null) {
+            if (currentItem < itemCount) {
+                return toggleStrings.get(currentItem);
+            }
+        }
+        return text;
     }
 
-    public int getCurrentItem(){
+    public void setOnItemChangeListener(OnDrawableChangeListener onDrawableChangeListener) {
+        this.onItemChangeListener = onDrawableChangeListener;
+    }
+
+    public void setOnItemChangeListener(OnTextChangeListener onTextChangeListener) {
+        this.onTextChangeListener = onTextChangeListener;
+    }
+
+    public int getCurrentItem() {
         return getCurrentResource();
     }
 
@@ -197,7 +286,45 @@ public class MultiToggleButton extends LinearLayout {
         );
     }
 
-    public interface OnChangeListener{
+
+    public interface OnDrawableChangeListener {
         void onItemChangeListener(int resourceId, int position);
+    }
+
+    public interface OnTextChangeListener {
+        void onItemChangeListener(String text, int position);
+    }
+
+    public void setDefaultPosition(int position) {
+        if (position >= 0 && position < itemCount) {
+            currentItem = position;
+            setCurrentImageResource(context);
+        }
+    }
+
+
+    public void setDefaultItem(int drawable) {
+        if (!isText) {
+            if (toggleDrawables != null) {
+                int index = toggleDrawables.indexOf(drawable);
+                setDefaultPosition(index);
+                setCurrentImageResource(context);
+            }
+        }
+    }
+
+
+    public void setDefaultItem(String text){
+        if (isText) {
+            if (toggleStrings != null) {
+                int index = toggleStrings.indexOf(text);
+                setDefaultPosition(index);
+                setCurrentImageResource(context);
+            }
+        }
+    }
+
+    public void setText(String text){
+        tvTgb.setText(text);
     }
 }

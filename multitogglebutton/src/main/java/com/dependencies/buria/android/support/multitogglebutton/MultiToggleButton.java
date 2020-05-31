@@ -61,6 +61,7 @@ public class MultiToggleButton extends LinearLayout {
 
     private void init(final Context context, AttributeSet attrs, int defStyleAttr){
         textSize = toDP(context, 12f);
+        this.context = context;
 
         LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
@@ -194,7 +195,7 @@ public class MultiToggleButton extends LinearLayout {
         );
     }
 
-    private interface OnChangeListener{
+    public interface OnChangeListener{
         void onItemChangeListener(int resourceId, int position);
     }
 }

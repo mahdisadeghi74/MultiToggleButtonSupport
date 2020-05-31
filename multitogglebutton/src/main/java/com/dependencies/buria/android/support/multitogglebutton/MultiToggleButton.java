@@ -34,6 +34,8 @@ public class MultiToggleButton extends LinearLayout {
     private int currentItem = 0;
     private int itemCount = 0;
 
+    // views
+    private ImageButton tgb;
     // listener
     private OnChangeListener onItemChangeListener = null;
 
@@ -69,7 +71,7 @@ public class MultiToggleButton extends LinearLayout {
             inflater.inflate(R.layout.layout_multi_toggle_button, this);
 
         TextView tvTgb = findViewById(R.id.tvTgb);
-        ImageButton tgb = findViewById(R.id.tgb);
+        tgb = findViewById(R.id.tgb);
         TypedArray typeArray = context.obtainStyledAttributes(attrs, R.styleable.MultiToggleButton);
 
 
@@ -157,7 +159,7 @@ public class MultiToggleButton extends LinearLayout {
             if (toggleDrawables != null){
                 if (currentItem < itemCount) {
                     if (toggleDrawables.get(currentItem) != null){
-                        context.getResources().getDrawable(toggleDrawables.get(currentItem));
+                        tgb.setImageDrawable(context.getResources().getDrawable(toggleDrawables.get(currentItem)));
                     }
                 }
             }
